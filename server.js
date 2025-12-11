@@ -19,7 +19,10 @@ app.get('/', (req, res) => {
     res.send('API is running! 🐶');
 });
 
-// Serve static files from the frontend's public directory (for CMS access to images)
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Serve static files from the frontend's public directory (fallback/legacy)
 app.use(express.static(path.join(__dirname, '..', 'bordoodles-site', 'public')));
 
 // Multer Setup for Image Uploads
@@ -27,9 +30,8 @@ app.use(express.static(path.join(__dirname, '..', 'bordoodles-site', 'public')))
 // Configure storage
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        // Save directly to the frontend's public/assets folder (or public root)
-        // Adjust path relative to 'bordoodles-api' -> 'bordoodles-site/public'
-        const uploadPath = path.join(__dirname, '..', 'bordoodles-site', 'public');
+        // Save to local 'uploads' directory in the API folder
+        const uploadPath = path.join(__dirname, 'uploads');
         if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath, { recursive: true });
         }
@@ -52,8 +54,8 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
-        // Return the web-accessible path (relative to public root)
-        const webPath = `/${req.file.filename}`;
+        // Return the web-accessible path (prefixed with /uploads)
+        const webPath = `/uploads/${req.file.filename}`;
         res.json({ url: webPath });
     } catch (error) {
         console.error('Upload error:', error);
